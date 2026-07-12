@@ -1,3 +1,5 @@
+import { AstroError } from "astro/errors";
+
 import { SEMVER_PATTERN } from "../consts/semantic.version.pattern";
 import type { starlightLatestVersionConfig } from "./config";
 import type { starlightLatestVersionContext } from "./types";
@@ -8,6 +10,16 @@ export default async function fetchVersion(
 ): Promise<starlightLatestVersionContext> {
   const apiUrl = latestReleaseApis[config.source.type](config.source.slug);
 
+  const unavailable = (reason: string): starlightLatestVersionContext => {
+    if (config.throwOnError) {
+      throw new AstroError(
+        `starlight-latest-version: could not determine the latest version of "${config.source.slug}" from ${config.source.type}.`,
+        reason
+      );
+    }
+    return { versionAvailable: false };
+  };
+
   try {
     const data = await fetch(apiUrl).then((response) => {
       if (!response.ok)
@@ -17,13 +29,15 @@ export default async function fetchVersion(
 
     const tagName = extractVersion[config.source.type](data);
     if (!tagName) {
-      return { versionAvailable: false }; // No release available
+      return unavailable(`No release found at ${apiUrl}.`); // No release available
     }
 
     const match = tagName.match(config.regexPattern ?? SEMVER_PATTERN);
 
     if (!match) {
-      return { versionAvailable: false }; // No valid version found
+      return unavailable(
+        `Could not extract a valid version from tag "${tagName}".`
+      ); // No valid version found
     }
 
     const versionWithoutPrefix = match.groups?.version || "";
@@ -56,6 +70,16 @@ export default async function fetchVersion(
 
     return context;
   } catch (error) {
+    // Re-throw the AstroError raised by `unavailable` when `throwOnError` is set.
+    if (error instanceof AstroError) throw error;
+
+    if (config.throwOnError) {
+      throw new AstroError(
+        `starlight-latest-version: failed to fetch the latest version of "${config.source.slug}" from ${apiUrl}.`,
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+
     console.error(error);
     return { versionAvailable: false }; // Fallback: no version available
   }

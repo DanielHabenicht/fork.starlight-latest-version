@@ -16,6 +16,7 @@ const configSchema = z.object({
     .prefault({}),
   showInSiteTitle: z.enum(["false", "true", "deferred"]).default("false"),
   regexPattern: z.string().optional(),
+  throwOnError: z.boolean().default(false),
 });
 
 export function validateConfig(

@@ -202,3 +202,14 @@ Override the regex pattern used to extract the version from the `tag_name` of th
 This is useful if your `tag_name` does not follow best practice and only necessary in rare cases. Nonetheless, it's supported by the Starlight Latest Version plugin.
 
 Read more about how the version tag is being extracted from the GitHub release [here](/version-extraction-algorithm).
+
+### `throwOnError`
+
+**Type:** `boolean`<br/>
+**Default:** `false`
+
+Whether to throw an error when the latest version cannot be determined, instead of silently falling back to `N/A`.
+
+By default, the plugin swallows any failure — a network or API error, a source without any release, or a tag that does not match the [version pattern](/version-extraction-algorithm) — and renders `N/A`, so your build always succeeds.
+
+Set this option to `true` to instead throw an error whenever the version cannot be determined. This fails the build when the version is fetched at build time (e.g. [`showInSiteTitle: "true"`](#showinsitetitle) or a statically rendered [component](/components)), which is useful if an unavailable version should be treated as a hard failure in CI. When the version is fetched at runtime (e.g. [`showInSiteTitle: "deferred"`](#showinsitetitle) or a component using [`server:defer`](https://docs.astro.build/en/reference/directives-reference/#serverdefer)), the error is thrown while handling the request instead.
